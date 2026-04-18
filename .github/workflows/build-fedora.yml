@@ -1,0 +1,93 @@
+name: Build pipewire-module-xrdp
+
+on:
+  push:
+    branches: [ master, main ]
+  pull_request:
+    branches: [ master, main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    name: Build (${{ matrix.arch }})
+    runs-on: ${{ matrix.runner }}
+    container:
+      image: fedora:latest
+
+    strategy:
+      matrix:
+        include:
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+          - arch: x86_64
+            runner: ubuntu-latest
+
+    steps:
+      - name: Checkout source
+        uses: actions/checkout@v4
+
+      - name: Install build dependencies
+        run: |
+          dnf install -y \
+            git \
+            gcc \
+            make \
+            autoconf \
+            libtool \
+            automake \
+            pkgconfig \
+            pipewire-devel \
+            pulseaudio-libs-devel \
+            xrdp-devel
+
+      - name: Bootstrap
+        run: ./bootstrap
+
+      - name: Configure
+        run: ./configure
+
+      - name: Build
+        run: make
+
+      - name: Stage install
+        run: make install DESTDIR=${{ github.workspace }}/dist
+
+      - name: Package artifact
+        run: |
+          cd ${{ github.workspace }}/dist
+          tar -czf ../pipewire-module-xrdp-${{ matrix.arch }}.tar.gz .
+
+      - name: Upload artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: pipewire-module-xrdp-${{ matrix.arch }}
+          path: pipewire-module-xrdp-${{ matrix.arch }}.tar.gz
+          retention-days: 30
+
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    needs: build
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/master' || github.ref == 'refs/heads/main')
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: true
+
+      - name: Create release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: build-${{ github.run_number }}
+          name: Build ${{ github.run_number }}
+          body: |
+            Automated build from commit ${{ github.sha }}
+
+            **Install on your container:**
+            ```bash
+            tar -xzf pipewire-module-xrdp-aarch64.tar.gz -C /
+            ```
+          files: artifacts/*.tar.gz
+          make_latest: true
