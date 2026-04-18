@@ -50,16 +50,16 @@ jobs:
         run: make
 
       - name: Stage install
-        run: make install DESTDIR=dist
+        run: make install DESTDIR=${{ github.workspace }}/dist
 
       - name: Package artifact
-        run: tar -czf pipewire-module-xrdp-${{ matrix.arch }}.tar.gz -C dist .
+        run: tar -czf ${{ github.workspace }}/pipewire-module-xrdp-${{ matrix.arch }}.tar.gz -C ${{ github.workspace }}/dist .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: pipewire-module-xrdp-${{ matrix.arch }}
-          path: pipewire-module-xrdp-${{ matrix.arch }}.tar.gz
+          path: ${{ github.workspace }}/pipewire-module-xrdp-${{ matrix.arch }}.tar.gz
           retention-days: 30
 
   release:
