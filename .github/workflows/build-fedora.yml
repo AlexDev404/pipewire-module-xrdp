@@ -50,12 +50,10 @@ jobs:
         run: make
 
       - name: Stage install
-        run: make install DESTDIR=${{ github.workspace }}/dist
+        run: make install DESTDIR=dist
 
       - name: Package artifact
-        run: |
-          cd ${{ github.workspace }}/dist
-          tar -czf ../pipewire-module-xrdp-${{ matrix.arch }}.tar.gz .
+        run: tar -czf pipewire-module-xrdp-${{ matrix.arch }}.tar.gz -C dist .
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
@@ -85,7 +83,7 @@ jobs:
           body: |
             Automated build from commit ${{ github.sha }}
 
-            **Install on your container:**
+            **Install on your container (aarch64):**
             ```bash
             tar -xzf pipewire-module-xrdp-aarch64.tar.gz -C /
             ```
